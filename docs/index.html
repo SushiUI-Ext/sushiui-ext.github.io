@@ -59,6 +59,15 @@ deriv_from = null
 var URL_SUSIN="https://raw.githubusercontent.com/SushiUI-Ext/sushin/refs/heads/main/index.susin";
 var BASE=URL_SUSIN.slice(0,URL_SUSIN.lastIndexOf("/")+1);
 
+/* maintainer photos and profiles (photos.json, same folder as this page) */
+var photos={maintainers:{},fallback:""};
+function loadPhotos(){
+  return fetch("photos.json?t="+Date.now())
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(j){if(j&&j.maintainers)photos=j;})
+    .catch(function(){});
+}
+
 /* tolerant parser: never throws, skips anything it cannot read */
 function parse(txt){
   var out=[],cur=null,bad=0;
@@ -78,11 +87,11 @@ function parse(txt){
 }
 
 /* image from https link or relative path (tries the sushin repo first, then this site) */
-function img(v,cls,alt){
+function img(v,cls,alt,local){
   if(!v||v==="null")return null;
   var srcs;
   if(/^https:\/\//i.test(v)){srcs=[v];}
-  else if(!/^[a-z][a-z0-9+.-]*:/i.test(v)&&v.indexOf("..")<0){v=v.replace(/^\.?\/+/,"");srcs=[BASE+v,v];}
+  else if(!/^[a-z][a-z0-9+.-]*:/i.test(v)&&v.indexOf("..")<0){v=v.replace(/^\.?\/+/,"");srcs=local?[v]:[BASE+v,v];}
   else{return null;}
   var el=document.createElement("img");
   el.className=cls;el.alt=alt;el.loading="lazy";
@@ -113,9 +122,15 @@ function row(d){
   var names=(d.maintainer||"").split(/\s+/).filter(function(x){return x&&x!=="null";});
   names.forEach(function(nm,i){
     var s=document.createElement("span");s.className="mt";
-    var a=img(d["maintainer"+(i+1)+"_photo"],"av",nm);
+    var p=photos.maintainers[nm];
+    var a=(p&&p.photo)?img(p.photo,"av",nm,true):img(d["maintainer"+(i+1)+"_photo"],"av",nm);
+    if(!a&&photos.fallback)a=img(photos.fallback,"av",nm,true);
     if(a)s.appendChild(a);
-    s.appendChild(document.createTextNode(nm));
+    if(p&&p.github){
+      var l=document.createElement("a");
+      l.href="https://github.com/"+encodeURIComponent(p.github);
+      l.textContent=nm;s.appendChild(l);
+    }else{s.appendChild(document.createTextNode(nm));}
     m.appendChild(s);
   });
   var s2=cell(tr,"");
@@ -137,7 +152,7 @@ function render(res,note){
 
 var fb=parse(document.getElementById("fallback").textContent);
 var why="";
-fetch(URL_SUSIN+"?t="+Date.now())
+loadPhotos().then(function(){return fetch(URL_SUSIN+"?t="+Date.now());})
 .then(function(r){if(!r.ok){why="HTTP "+r.status;throw 0;}return r.text();})
 .then(function(t){var res=parse(t);if(!res.list.length){why="no readable devices in the file";throw 0;}render(res,"Loaded from index.susin (sushin repository).");})
 .catch(function(e){if(!why)why=(e&&e.message)?e.message:"network or CORS error";render(fb,"Could not read index.susin ("+why+"), showing the built-in copy of the list.");});

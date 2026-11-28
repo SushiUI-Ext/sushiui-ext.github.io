@@ -1,0 +1,18 @@
+{
+  "logo": "https://avatars.githubusercontent.com/u/283717867",
+  "fallback": "assets/maintainers/default.png",
+  "maintainers": {
+    "bangkkuser": {
+      "photo": "https://avatars.githubusercontent.com/u/275179888",
+      "github": "rebangkkuser",
+      "roles": ["SushiUI Creator", "Maintainer of 5 devices", "sushin creator"],
+      "title": ["Owner", "Maintainer"]
+    },
+    "Kultrinhaa_": {
+      "photo": "assets/maintainers/kultrinhaa_.png",
+      "github": "Kultrinhaa_",
+      "roles": ["Maintainer"],
+      "title": ["Maintainer"]
+    }
+  }
+}
