@@ -15,51 +15,139 @@
 <h2 style="margin-top:0">Devices</h2>
 <p class="status" id="status">Loading device list…</p>
 <div class="scroll"><table id="devices">
-<thead><tr><th>Device</th><th>Vendor</th><th>Model</th><th>Kernel</th><th>Version</th><th>Channel</th><th>Derived from</th><th>Maintainers</th><th>Source</th></tr></thead>
+<thead><tr><th>Codename</th><th>Vendor</th><th>Model</th><th>Status</th><th>Maintainers</th><th>Releases</th><th>Source</th></tr></thead>
 <tbody></tbody>
 </table></div>
 </main>
 <footer><div class="wrap">SushiUI Extended is an independent project. Device trees are published as source on GitHub.</div></footer>
 <script type="text/plain" id="fallback">
-[ bangkk ]
-sushi_version = 1.1.2
-sushi_channel = mainline
-vendor = motorola
-vendor_display = Motorola
-device = moto g84 5G
-kernel = 5.4
-source_code = https://github.com/SushiUI-EXT/sushi_device_motorola_bangkk
-deriv_from = null
+/* _ devices.jsonc _
+This file defines the supported devices and them informations
+Licensed by MIT license - this is open for you
+This file is mainly created for softwares read it via HTTP requests: but it's not the only function
+*/
 
-[ rhode ]
-sushi_version = 1.1.2
-sushi_channel = mainline_port
-vendor = motorola
-vendor_display = Motorola
-device = moto g52
-kernel = 4.19
-source_code = https://github.com/SushiUI-EXT/sushi_device_motorola_rhode
-deriv_from = bangkk
-maintainer = Kultrinhaa_ bangkkuser
-maintainer1_photo = assets/maintainers/kultrinhaa_.png
-maintainer2_photo = assets/maintainers/bangkkuser.png
+[
+ {
+   "vendor": "motorola",
+   "device": "moto g84 5G",
+   "codename": "bangkk",
+   "downloads_folder": "devices/bangkk",
+   "dropped": false,
+   "maintainer": ["bangkkuser"],
+   "releases": true,
+   "source": "github.com/SushiUI-Ext/sushi_device_motorola_bangkk"
+ },
 
-[ iphone5s ]
-sushi_version = 0.1-apple
-sushi_channel = mainline_xnu
-vendor = apple
-vendor_display = Apple
-device = iPhone 5s
-kernel = xnu-4903 (16H88)
-source_code = https://github.com/SushiUI-EXT/sushi_device_apple_iphone5s
-deriv_from = null
+ {
+   "vendor": "motorola",
+   "device": "moto g34 5G",
+   "codename": "fogos",
+   "dropped": false,
+   "downloads_folder": null,
+   "maintainer": ["bangkkuser"],
+   "releases": false,
+   "source": "github.com/SushiUI-Ext/sushi_device_motorola_fogos"
+ },
+
+ {
+   "vendor": "motorola",
+   "device": "moto g45 5G",
+   "codename": "fogos2",
+   "dropped": false,
+   "downloads_folder": null,
+   "maintainer": ["bangkkuser"],
+   "releases": false,
+   "source": "github.com/SushiUI-Ext/sushi_device_motorola_fogos2"
+ },
+
+ {
+   "vendor": "motorola",
+   "device": "moto g52",
+   "codename": "rhode",
+   "downloads_folder": "devices/rhode",
+   "dropped": false,
+   "maintainer": ["Kultrinhaa_", "bangkkuser"],
+   "releases": true,
+   "source": "github.com/SushiUI-Ext/sushi_device_motorola_rhode"
+ },
+
+ {
+   "vendor": "motorola",
+   "device": "moto g play (2016)",
+   "codename": "harpia",
+   "downloads_folder": null,
+   "dropped": false,
+   "maintainer": ["bangkkuser"],
+   "releases": false,
+   "source": "github.com/SushiUI-Ext/sushi_device_motorola_harpia"
+ },
+
+ {
+   "vendor": "apple",
+   "device": "iPhone 5s",
+   "codename": "n53ap",
+   "downloads_folder": null,
+   "dropped": true,
+   "maintainer": ["bangkkuser"],
+   "releases": false,
+   "source": "github.com/SushiUI-Ext/sushi_device_apple_iphone5s"
+ }
+]
 </script>
 <script>
 (function(){
-var URL_SUSIN="https://raw.githubusercontent.com/SushiUI-Ext/sushin/refs/heads/main/index.susin";
-var BASE=URL_SUSIN.slice(0,URL_SUSIN.lastIndexOf("/")+1);
+var URL_JSONC="https://raw.githubusercontent.com/SushiUI-Ext/releases/refs/heads/releases/devices.jsonc";
+var URL_TREE="https://github.com/SushiUI-Ext/releases/tree/releases/";
 
-/* maintainer photos and profiles (photos.json, same folder as this page) */
+/* parser 2 (JSONC): removes comments and trailing commas, never touches text inside strings */
+function stripJsonc(txt){
+  var out=[],i=0,n=txt.length,inStr=false,lastComma=-1,c,d,e;
+  while(i<n){
+    c=txt.charAt(i);d=txt.charAt(i+1);
+    if(inStr){
+      out.push(c);
+      if(c==="\\"){out.push(d);i+=2;continue;}
+      if(c==='"')inStr=false;
+      i++;continue;
+    }
+    if(c==="/"&&d==="/"){while(i<n&&txt.charAt(i)!=="\n")i++;continue;}
+    if(c==="/"&&d==="*"){e=txt.indexOf("*/",i+2);i=(e<0)?n:e+2;out.push(" ");continue;}
+    if(c==='"'){inStr=true;lastComma=-1;out.push(c);i++;continue;}
+    if(c===","){lastComma=out.length;out.push(c);i++;continue;}
+    if(c==="]"||c==="}"){if(lastComma>=0)out[lastComma]="";lastComma=-1;out.push(c);i++;continue;}
+    if(!/\s/.test(c))lastComma=-1;
+    out.push(c);i++;
+  }
+  return out.join("");
+}
+
+/* parser 1 (plain JSON) first; if it fails, parser 2 (JSONC). throws if both fail */
+function parseDevices(txt){
+  txt=String(txt==null?"":txt).replace(/^\uFEFF/,"");
+  var data;
+  try{data=JSON.parse(txt);}
+  catch(e1){data=JSON.parse(stripJsonc(txt));}
+  var arr=Array.isArray(data)?data:(data&&Array.isArray(data.devices)?data.devices:null);
+  if(!arr)throw new Error("unexpected structure");
+  var list=[],bad=0;
+  arr.forEach(function(d){
+    if(d&&typeof d==="object"&&!Array.isArray(d)&&d.codename)list.push(d);else bad++;
+  });
+  return {list:list,bad:bad};
+}
+
+/* maintainer: string or array, separated by spaces or commas */
+function names(v){
+  var out=[];
+  [].concat(v==null?[]:v).forEach(function(x){
+    String(x).split(/[\s,]+/).forEach(function(nm){if(nm&&nm!=="null")out.push(nm);});
+  });
+  return out;
+}
+/*--dom--*/
+
+/* photos.json (same folder as this page): maintainer photo + github */
 var photos={maintainers:{},fallback:""};
 function loadPhotos(){
   return fetch("photos.json?t="+Date.now())
@@ -68,31 +156,15 @@ function loadPhotos(){
     .catch(function(){});
 }
 
-/* tolerant parser: never throws, skips anything it cannot read */
-function parse(txt){
-  var out=[],cur=null,bad=0;
-  String(txt==null?"":txt).replace(/^\uFEFF/,"").split(/\r?\n/).forEach(function(raw){
-    var line=raw.trim();
-    if(!line||line.charAt(0)==="#"||line.charAt(0)===";")return;
-    if(line.charAt(0)==="["){
-      var name=line.replace(/^\[/,"").replace(/\]?\s*$/,"").trim();
-      if(name){cur={name:name};out.push(cur);}else{bad++;}
-      return;
-    }
-    var m=line.match(/^([A-Za-z0-9_]+)\s*[=:]\s*(.*)$/);
-    if(m&&cur){cur[m[1].toLowerCase()]=m[2].trim();return;}
-    bad++;
-  });
-  return {list:out,bad:bad};
+function okSrc(v){
+  if(!v||typeof v!=="string"||v==="null")return null;
+  if(/^https:\/\//i.test(v))return v;
+  if(!/^[a-z][a-z0-9+.-]*:/i.test(v)&&v.indexOf("..")<0)return v.replace(/^\.?\/+/,"");
+  return null;
 }
-
-/* image from https link or relative path (tries the sushin repo first, then this site) */
-function img(v,cls,alt,local){
-  if(!v||v==="null")return null;
-  var srcs;
-  if(/^https:\/\//i.test(v)){srcs=[v];}
-  else if(!/^[a-z][a-z0-9+.-]*:/i.test(v)&&v.indexOf("..")<0){v=v.replace(/^\.?\/+/,"");srcs=local?[v]:[BASE+v,v];}
-  else{return null;}
+function img(list,cls,alt){
+  var srcs=list.map(okSrc).filter(Boolean);
+  if(!srcs.length)return null;
   var el=document.createElement("img");
   el.className=cls;el.alt=alt;el.loading="lazy";
   var i=0;
@@ -102,41 +174,41 @@ function img(v,cls,alt,local){
 }
 
 function cell(tr,text){var td=document.createElement("td");td.textContent=text;tr.appendChild(td);return td;}
+function link(href,text){var a=document.createElement("a");a.href=href;a.textContent=text;return a;}
+function vendorName(v){v=String(v||"");return v?v.charAt(0).toUpperCase()+v.slice(1):"";}
+function ghUrl(u){
+  u=String(u||"");
+  if(/^https:\/\/github\.com\//i.test(u))return u;
+  if(/^github\.com\//i.test(u))return "https://"+u;
+  return null;
+}
 
 function row(d){
   var tr=document.createElement("tr");
   var n=cell(tr,"");
-  var w=document.createElement("div");w.className="who";
-  var ph=img(d.photo,"thumb",d.name);
-  if(ph)w.appendChild(ph);
-  var b=document.createElement("b");b.textContent=d.name;w.appendChild(b);
-  n.appendChild(w);
-  cell(tr,d.vendor_display||d.vendor||"");
+  var b=document.createElement("b");b.textContent=String(d.codename);n.appendChild(b);
+  cell(tr,vendorName(d.vendor));
   cell(tr,d.device||"");
-  cell(tr,d.kernel||"");
-  cell(tr,d.sushi_version||"");
-  cell(tr,d.sushi_channel||"").className="tag";
-  var dv=d.deriv_from;
-  cell(tr,(!dv||dv==="null")?"\u2014":dv);
+  var st=cell(tr,d.dropped?"Dropped":"Active");
+  st.className=d.dropped?"tag muted":"tag";
   var m=cell(tr,"");
-  var names=(d.maintainer||"").split(/\s+/).filter(function(x){return x&&x!=="null";});
-  names.forEach(function(nm,i){
+  names(d.maintainer).forEach(function(nm){
     var s=document.createElement("span");s.className="mt";
     var p=photos.maintainers[nm];
-    var a=(p&&p.photo)?img(p.photo,"av",nm,true):img(d["maintainer"+(i+1)+"_photo"],"av",nm);
-    if(!a&&photos.fallback)a=img(photos.fallback,"av",nm,true);
+    var a=img([p&&p.photo,photos.fallback],"av",nm);
     if(a)s.appendChild(a);
-    if(p&&p.github){
-      var l=document.createElement("a");
-      l.href="https://github.com/"+encodeURIComponent(p.github);
-      l.textContent=nm;s.appendChild(l);
-    }else{s.appendChild(document.createTextNode(nm));}
+    if(p&&p.github){s.appendChild(link("https://github.com/"+encodeURIComponent(p.github),nm));}
+    else{s.appendChild(document.createTextNode(nm));}
     m.appendChild(s);
   });
+  var dl=cell(tr,"");
+  var folder=String(d.downloads_folder||"");
+  if(d.releases&&folder&&folder.indexOf("..")<0&&!/^[a-z][a-z0-9+.-]*:/i.test(folder)){
+    dl.appendChild(link(URL_TREE+encodeURI(folder.replace(/^\/+/,"")),"[releases]"));
+  }else{dl.textContent="\u2014";}
   var s2=cell(tr,"");
-  if(d.source_code&&/^https:\/\//i.test(d.source_code)){
-    var a2=document.createElement("a");a2.href=d.source_code;a2.textContent="[git]";s2.appendChild(a2);
-  }
+  var src=ghUrl(d.source);
+  if(src)s2.appendChild(link(src,"[git]"));
   return tr;
 }
 
@@ -147,15 +219,16 @@ function render(res,note){
     try{tb.appendChild(row(d));}catch(e){skipped++;}
   });
   var extra=res.bad+skipped;
-  document.getElementById("status").textContent=note+(extra?" ("+extra+" unreadable line"+(extra>1?"s":"")+" ignored.)":"");
+  document.getElementById("status").textContent=note+(extra?" ("+extra+" unreadable entr"+(extra>1?"ies":"y")+" ignored.)":"");
 }
 
-var fb=parse(document.getElementById("fallback").textContent);
+var fb;
+try{fb=parseDevices(document.getElementById("fallback").textContent);}catch(e){fb={list:[],bad:0};}
 var why="";
-loadPhotos().then(function(){return fetch(URL_SUSIN+"?t="+Date.now());})
+loadPhotos().then(function(){return fetch(URL_JSONC+"?t="+Date.now());})
 .then(function(r){if(!r.ok){why="HTTP "+r.status;throw 0;}return r.text();})
-.then(function(t){var res=parse(t);if(!res.list.length){why="no readable devices in the file";throw 0;}render(res,"Loaded from index.susin (sushin repository).");})
-.catch(function(e){if(!why)why=(e&&e.message)?e.message:"network or CORS error";render(fb,"Could not read index.susin ("+why+"), showing the built-in copy of the list.");});
+.then(function(t){var res=parseDevices(t);if(!res.list.length){why="no readable devices in the file";throw 0;}render(res,"Loaded from devices.jsonc (releases repository).");})
+.catch(function(e){if(!why)why=(e&&e.message)?e.message:"network or CORS error";render(fb,"Could not read devices.jsonc ("+why+"), showing the built-in copy of the list.");});
 })();
 </script>
 </body>
